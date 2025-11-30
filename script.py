@@ -12,6 +12,18 @@ from collections import Counter, namedtuple
 from pypinyin import pinyin, Style
 from typing import List, Set, Dict
 import os
+import logging
+import sys
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Constants
 MAX_WORD_LENGTH = 4
@@ -29,9 +41,17 @@ def get_stanza_segmenter():
     """Lazy load Stanza segmenter to avoid slow startup"""
     global stanza_nlp
     if stanza_nlp is None:
+        logger.info("Initializing Stanza segmenter (downloading model if needed)...")
         # Download Chinese model if not present, then initialize
         stanza.download('zh', verbose=False)
-        stanza_nlp = stanza.Pipeline('zh', processors='tokenize', verbose=False, download_method=None)
+        stanza_nlp = stanza.Pipeline(
+            'zh',
+            processors='tokenize',
+            verbose=False,
+            download_method=None,
+            logging_level='ERROR'  # Suppress INFO/WARNING logs from Stanza
+        )
+        logger.info("Stanza initialized")
     return stanza_nlp
 
 # Comprehensive punctuation set
@@ -51,6 +71,7 @@ def load_cedict(path: str) -> Dict[str, str]:
     """
     cedict = {}
     if not os.path.exists(path):
+        logger.warning(f"CC-CEDICT not found, definitions unavailable")
         return cedict
     
     try:
@@ -84,16 +105,19 @@ def load_cedict(path: str) -> Dict[str, str]:
                             cedict[simplified] = first_def
                             if traditional != simplified:
                                 cedict[traditional] = first_def
-                except Exception:
+                except Exception as e:
                     continue
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Error loading CC-CEDICT: {e}")
     
+    logger.info(f"Loaded {len(cedict)} definitions")
     return cedict
 
 
 def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> str:
     """Check comprehension of Chinese text from clipboard against known words."""
+    logger.info("Starting analysis...")
+    
     try:
         # Load CC-CEDICT dictionary for instant offline lookups
         cedict = load_cedict(CEDICT_PATH)
@@ -102,6 +126,7 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
         with open(known_words_path, encoding="utf8") as f:
             base_words = set(f.read().split())
         known_words = base_words.copy()
+        logger.info(f"Loaded {len(base_words)} known words")
         
         # Load unknown words to exclude from known word counting
         unknown_words_list = set()
@@ -116,7 +141,7 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
                         if word:
                             unknown_words_list.add(word)
         except FileNotFoundError:
-            pass  # unknown.txt is optional
+            pass
         
         text = pyperclip.paste()
         if not text:
@@ -125,6 +150,7 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
         # Clean up: remove whitespace and diacritics
         normalized = unicodedata.normalize("NFKD", "".join(text.split()))
         cleaned = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
+        logger.info(f"Processing {len(cleaned)} characters...")
         
         if not cleaned:
             return "Error: No Chinese text found in clipboard after filtering"
@@ -237,6 +263,8 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
             key=lambda x: x[1], reverse=True
         )
         
+        logger.info(f"Analysis complete: {known_count / total_words * 100:.1f}% comprehension")
+        
         # Format output
         lines = [
             f"\nWord Count: {total_words}",
@@ -276,4 +304,6 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
 
 
 if __name__ == "__main__":
+    logger.info("Script started")
     print(comprehension_checker())
+    logger.info("Script finished")
