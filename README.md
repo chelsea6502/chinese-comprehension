@@ -4,17 +4,18 @@ Analyze Chinese text from your clipboard to gauge comprehension based on your kn
 
 ## Features
 - Analyzes Chinese text directly from clipboard
-- **Uses Stanza (Stanford NLP) for state-of-the-art word segmentation (97-98% accuracy)**
+- **Uses pkuseg (Peking University) for superior word segmentation (96.88% F1 accuracy)**
 - Uses dynamic programming for optimal word segmentation
 - Calculates comprehension percentage based on known words
 - Lists unknown words with pinyin and frequency
 - Instant offline dictionary lookups via CC-CEDICT
 - Supports optional `unknown.txt` file to exclude compound words from being counted as known
 - Filters out punctuation, numbers, and English content automatically
+- Verbose logging to track initialization and processing
 
 ## Requirements
 * Python 3.9 or above
-* [Stanza](https://stanfordnlp.github.io/stanza/) - Stanford NLP's deep learning-based Chinese segmentation (97-98% accuracy)
+* [spacy-pkuseg](https://github.com/explosion/spacy-pkuseg) - Peking University's Chinese segmentation (96.88% F1 on MSRA)
 * pyperclip - Clipboard access
 * pypinyin - Pinyin conversion
 
@@ -34,7 +35,7 @@ cd chinese-comprehension
 pip install -r requirements.txt
 ```
 
-**Note:** On first run, Stanza will automatically download the Chinese language model (~200MB). This is a one-time download.
+**Note:** On first run, pkuseg will automatically download the 'mixed' model. This is a one-time download.
 
 ## Usage
 
@@ -45,7 +46,7 @@ pip install -r requirements.txt
 python script.py
 ```
 
-**First Run:** The script will download Stanza's Chinese model (~200MB) automatically. Subsequent runs will be faster (2-4 seconds for ~1000 words).
+**First Run:** The script will download pkuseg's 'mixed' model automatically. Subsequent runs will be faster.
 
 ### Known Words File
 By default, the script looks for `known.txt` in the same directory. To use a different file, modify the `DEFAULT_KNOWN_WORDS_PATH` constant in the script.
@@ -92,29 +93,35 @@ Unique Unknown Words: 23
 ## Technical Details
 
 ### Word Segmentation
-This tool uses **Stanza** from Stanford NLP, which provides:
-- **97-98% accuracy** on standard Chinese segmentation benchmarks
-- Deep learning (BERT-based) contextual understanding
-- Better handling of ambiguous phrases compared to traditional methods
+This tool uses **pkuseg** from Peking University, which provides:
+- **96.88% F1 accuracy** on MSRA benchmark (news text)
+- **79% error rate reduction** compared to jieba
+- Pre-trained models optimized for different domains (mixed, news, web, medicine, tourism)
+- Uses the 'mixed' model by default for best general-purpose accuracy
 
 ### Segmentation Strategy
 1. **Priority 1:** Match against your `known.txt` words using dynamic programming
 2. **Priority 2:** Match against `unknown.txt` for pre-defined difficult words
-3. **Fallback:** Use Stanza for remaining unknown segments
+3. **Fallback:** Use pkuseg for remaining unknown segments
 
-This hybrid approach typically achieves **97-98% accuracy** for your specific vocabulary.
+This hybrid approach maximizes accuracy for your specific vocabulary.
 
-### Performance
-- **Speed:** 2-4 seconds for ~1000 words
-- **Accuracy:** 97-98% (20-30 errors per 1000 words)
-- **Memory:** ~400MB (model loaded in memory)
+### Performance Benchmarks
+Based on Peking University evaluations (2019):
 
-### Why Stanza?
-Compared to alternatives:
-- **Jieba:** 94-95% accuracy (faster but less accurate)
-- **THULAC:** 95-96% accuracy (Python 3.8+ compatibility issues)
-- **PKUSEG:** 96-97% accuracy (build issues with modern Python)
-- **Stanza:** 97-98% accuracy (best balance of accuracy and practicality)
+| Package | MSRA F1 (News) | CTB8 F1 (Mixed) | Weibo F1 (Web) | Average |
+|---------|----------------|-----------------|----------------|---------|
+| **pkuseg** | **96.88%** | **94.21%** | **93.43%** | **91.29%** |
+| THULAC | 95.71% | 92.87% | 86.65% | 88.08% |
+| LTP | ~95% | ~92% | ~88% | 83-95% |
+| jieba | 88.42% | 87.66% | 83.56% | 81.61% |
+
+### Why pkuseg?
+- **Highest accuracy** on general Chinese text (96.88% F1 on MSRA)
+- **79% error reduction** vs jieba on standard benchmarks
+- **Domain-specific models** available for specialized text
+- **Stable and maintained** by Peking University NLP team
+- **Easy installation** via pip with no build issues
 
 ## License
 

@@ -255,13 +255,32 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
             key=lambda x: x[1], reverse=True
         )
         
-        logger.info(f"Analysis complete: {known_count / total_words * 100:.1f}% comprehension")
+        comprehension_pct = known_count / total_words * 100
+        logger.info(f"Analysis complete: {comprehension_pct:.1f}% comprehension")
+        
+        # Determine difficulty assessment (accounting for ~3% pkuseg segmentation error)
+        # Actual comprehension is likely 3% higher than shown due to over-segmentation
+        def get_assessment(pct: float) -> str:
+            if pct < 82:
+                return "⛔ Too Difficult"
+            elif pct < 87:
+                return "🔴 Very Challenging"
+            elif pct < 89:
+                return "🟡 Challenging"
+            elif pct < 92:
+                return "🟢 Optimal (i+1)"
+            elif pct < 95:
+                return "🔵 Comfortable"
+            else:
+                return "⚪ Too Easy"
+        
+        assessment = get_assessment(comprehension_pct)
         
         # Format output
         lines = [
             f"\nWord Count: {total_words}",
             f"Total Unique Words: {unique_words}",
-            f"Comprehension: {known_count / total_words * 100:.1f}%",
+            f"Comprehension: {comprehension_pct:.1f}% - {assessment}",
             f"Unique Unknown Words: {len(unknown_words)}"
         ]
         
