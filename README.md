@@ -2,6 +2,10 @@
 
 Analyze Chinese text from your clipboard to gauge comprehension based on your known words.
 
+## Acknowledgments
+
+This project is based on [Destaq/chinese-comprehension](https://github.com/Destaq/chinese-comprehension) as the starting point.
+
 ## Features
 - Clipboard text analysis with comprehension percentage
 - pkuseg word segmentation (~97% accuracy)
