@@ -71,6 +71,8 @@ Format (one word per line, comments with # are optional):
 
 **Why use this?** If you know the characters 好 and 吃 individually, the script would normally count 好吃 as "known". But if you haven't learned 好吃 as a compound word, add it to `unknown.txt` to exclude it from your comprehension calculation.
 
+**Note:** If a word appears in both `known.txt` and `unknown.txt`, it will be treated as known (explicit entries in `known.txt` take priority).
+
 ## How It Works
 
 1. **Load Known Words**: Reads your known words from `known.txt` and expands to include individual characters

@@ -31,12 +31,10 @@ DPState = namedtuple('DPState', ['score', 'segmentation', 'unknown_start'])
 def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> str:
     """Check comprehension of Chinese text from clipboard against known words."""
     try:
-        # Load known words and expand with individual characters
+        # Load known words (no character expansion)
         with open(known_words_path, encoding="utf8") as f:
             base_words = set(f.read().split())
         known_words = base_words.copy()
-        for word in base_words:
-            known_words.update(word)
         
         # Load unknown words to exclude from known word counting
         unknown_words_list = set()
@@ -68,6 +66,42 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
         n = len(cleaned)
         dp: List[DPState] = [DPState(0, [], -1)] + [DPState(float('-inf'), [], -1)] * n
         
+        # Helper function to segment unknown text
+        def segment_unknown(text: str) -> List[str]:
+            """Segment unknown text by first checking unknown.txt, then using jieba"""
+            result = []
+            i = 0
+            while i < len(text):
+                # Try to match against unknown_words_list (longest match first)
+                matched = False
+                for length in range(min(MAX_WORD_LENGTH, len(text) - i), 0, -1):
+                    candidate = text[i:i+length]
+                    if candidate in unknown_words_list:
+                        result.append(candidate)
+                        i += length
+                        matched = True
+                        break
+                
+                if not matched:
+                    # If no match in unknown.txt, use jieba for this segment
+                    # Find the next unknown word boundary or end of text
+                    j = i + 1
+                    while j < len(text):
+                        found_unknown = False
+                        for length in range(min(MAX_WORD_LENGTH, len(text) - j), 0, -1):
+                            if text[j:j+length] in unknown_words_list:
+                                found_unknown = True
+                                break
+                        if found_unknown:
+                            break
+                        j += 1
+                    
+                    # Use jieba on this segment
+                    result.extend(jieba.cut(text[i:j]))
+                    i = j
+            
+            return result
+        
         for i in range(1, n + 1):
             for j in range(max(0, i - MAX_WORD_LENGTH), i):
                 word = cleaned[j:i]
@@ -77,7 +111,7 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
                     new_seg = prev.segmentation.copy()
                     
                     if prev.unknown_start != -1:
-                        new_seg.extend([(w, False) for w in jieba.cut(cleaned[prev.unknown_start:j])])
+                        new_seg.extend([(w, False) for w in segment_unknown(cleaned[prev.unknown_start:j])])
                     
                     new_seg.append((word, True))
                     new_score = prev.score + len(word)
@@ -95,7 +129,7 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
         result = final.segmentation.copy()
         
         if final.unknown_start != -1:
-            result.extend([(w, False) for w in jieba.cut(cleaned[final.unknown_start:n])])
+            result.extend([(w, False) for w in segment_unknown(cleaned[final.unknown_start:n])])
         
         # Filter to valid Chinese words only
         def is_valid(word: str) -> bool:
@@ -113,9 +147,15 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
         
         # Calculate stats
         word_counts = Counter(words)
-        # A word is known if it's in known_words AND not in unknown_words_list
-        # This prevents compound words from being counted as known just because their characters are known
-        is_known = lambda w: (w in known_words or all(c in known_words for c in w)) and w not in unknown_words_list
+        # A word is known if:
+        # 1. It's explicitly in base_words (known.txt) - always treated as known, even if in unknown.txt
+        # 2. It's NOT in unknown_words_list (explicit unknown words take precedence)
+        def is_known(w):
+            # Explicit entries in known.txt are always known (even if in unknown.txt)
+            if w in base_words:
+                return True
+            # Otherwise, it's unknown
+            return False
         
         total_words = len(words)
         unique_words = len(word_counts)
