@@ -1,5 +1,13 @@
-/core/__pycache__
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
 .DS_STORE
+.venv/
+venv/
+ENV/
+env/
 /books
 /data/*.txt
 output.txt
