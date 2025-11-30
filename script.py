@@ -15,15 +15,17 @@ import os
 import logging
 import sys
 
-# Configure logging
+# Configure logging - suppress all INFO messages
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.ERROR,
+    format='%(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger(__name__)
+# Disable all INFO level logging
+logging.getLogger().setLevel(logging.ERROR)
 
 # Constants
 MAX_WORD_LENGTH = 4
@@ -45,11 +47,9 @@ def get_pkuseg_segmenter():
     """Lazy load pkuseg segmenter to avoid slow startup"""
     global pkuseg_segmenter
     if pkuseg_segmenter is None:
-        logger.info("Initializing pkuseg segmenter (loading model)...")
         # Use 'mixed' model for best general-purpose accuracy
         # Other options: 'news', 'web', 'medicine', 'tourism'
         pkuseg_segmenter = pkuseg.pkuseg(model_name='mixed')
-        logger.info("pkuseg initialized")
     return pkuseg_segmenter
 
 def get_spacy_nlp():
@@ -57,18 +57,13 @@ def get_spacy_nlp():
     global spacy_nlp
     if spacy_nlp is None:
         try:
-            logger.info("Loading spaCy Chinese model for NER...")
             spacy_nlp = spacy.load("zh_core_web_sm")
-            logger.info("spaCy NER initialized")
         except OSError:
             logger.warning("spaCy Chinese model not found. Downloading zh_core_web_sm (~50MB)...")
-            logger.info("This is a one-time download and may take a few minutes...")
             try:
                 import subprocess
                 subprocess.check_call([sys.executable, "-m", "spacy", "download", "zh_core_web_sm"])
-                logger.info("Download complete. Loading model...")
                 spacy_nlp = spacy.load("zh_core_web_sm")
-                logger.info("spaCy NER initialized")
             except Exception as e:
                 logger.error(f"Failed to download spaCy model: {e}")
                 raise RuntimeError(f"Could not download spaCy Chinese model: {e}")
@@ -130,7 +125,6 @@ def load_cedict(path: str) -> Dict[str, str]:
     except Exception as e:
         logger.error(f"Error loading CC-CEDICT: {e}")
     
-    logger.info(f"Loaded {len(cedict)} definitions")
     return cedict
 
 
@@ -145,8 +139,6 @@ def comprehension_checker(text: str, known_words_dir: str = KNOWN_WORDS_DIR) -> 
     Returns:
         Analysis report as a string
     """
-    logger.info("Starting analysis...")
-    
     try:
         # Load CC-CEDICT dictionary for instant offline lookups
         cedict = load_cedict(CEDICT_PATH)
@@ -157,14 +149,12 @@ def comprehension_checker(text: str, known_words_dir: str = KNOWN_WORDS_DIR) -> 
             txt_files = [f for f in os.listdir(known_words_dir) if f.endswith('.txt')]
             for txt_file in txt_files:
                 file_path = os.path.join(known_words_dir, txt_file)
-                logger.info(f"Loading known words from {txt_file}")
                 with open(file_path, encoding="utf8") as f:
                     base_words.update(f.read().split())
         else:
             raise FileNotFoundError(f"Known words directory not found: '{known_words_dir}'")
         
         known_words = base_words.copy()
-        logger.info(f"Loaded {len(base_words)} known words from {len(txt_files)} file(s)")
         
         # Load unknown words from all .txt files in unknown directory
         unknown_words_list = set()
@@ -172,7 +162,6 @@ def comprehension_checker(text: str, known_words_dir: str = KNOWN_WORDS_DIR) -> 
             txt_files = [f for f in os.listdir(UNKNOWN_WORDS_DIR) if f.endswith('.txt')]
             for txt_file in txt_files:
                 file_path = os.path.join(UNKNOWN_WORDS_DIR, txt_file)
-                logger.info(f"Loading unknown words from {txt_file}")
                 with open(file_path, encoding="utf8") as f:
                     for line in f:
                         # Skip comments and empty lines
@@ -182,7 +171,6 @@ def comprehension_checker(text: str, known_words_dir: str = KNOWN_WORDS_DIR) -> 
                             word = line.split('\t')[0].split('#')[0].strip()
                             if word:
                                 unknown_words_list.add(word)
-            logger.info(f"Loaded {len(unknown_words_list)} unknown words from {len(txt_files)} file(s)")
         
         if not text:
             raise ValueError("No text provided")
@@ -190,7 +178,6 @@ def comprehension_checker(text: str, known_words_dir: str = KNOWN_WORDS_DIR) -> 
         # Clean up: remove whitespace and diacritics
         normalized = unicodedata.normalize("NFKD", "".join(text.split()))
         cleaned = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
-        logger.info(f"Processing {len(cleaned)} characters...")
         
         if not cleaned:
             return "Error: No Chinese text found after filtering"
@@ -277,7 +264,6 @@ def comprehension_checker(text: str, known_words_dir: str = KNOWN_WORDS_DIR) -> 
             for ent in doc.ents:
                 if ent.label_ in ['PERSON', 'GPE', 'ORG', 'FAC', 'LOC']:
                     proper_nouns.add(ent.text)
-            logger.info(f"Detected {len(proper_nouns)} proper nouns to exclude")
         except Exception as e:
             logger.warning(f"NER detection failed: {e}. Continuing without proper noun exclusion.")
         
@@ -315,9 +301,8 @@ def comprehension_checker(text: str, known_words_dir: str = KNOWN_WORDS_DIR) -> 
             [(w, c) for w, c in word_counts.items() if not is_known(w)],
             key=lambda x: x[1], reverse=True
         )
-        
         comprehension_pct = known_count / total_words * 100
-        logger.info(f"Analysis complete: {comprehension_pct:.1f}% comprehension")
+        
         
         # Determine difficulty assessment (accounting for ~3% pkuseg segmentation error)
         # Actual comprehension is likely 3% higher than shown due to over-segmentation
@@ -401,14 +386,11 @@ def process_input_files(input_dir: str = INPUT_DIR) -> None:
         print(f"Please add .txt files containing Chinese text to analyze.")
         return
     
-    logger.info(f"Found {len(txt_files)} file(s) to process")
+    print(f"📊 Processing {len(txt_files)} file(s)...\n")
     
     # Process each file
     for txt_file in txt_files:
         file_path = os.path.join(input_dir, txt_file)
-        logger.info(f"\n{'='*60}")
-        logger.info(f"Processing: {txt_file}")
-        logger.info(f"{'='*60}")
         
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -429,13 +411,7 @@ def process_input_files(input_dir: str = INPUT_DIR) -> None:
         except Exception as e:
             logger.error(f"Error processing '{txt_file}': {e}")
             print(f"\n[{txt_file}] - ERROR: {e}")
-    
-    logger.info(f"\n{'='*60}")
-    logger.info("All files processed")
-    logger.info(f"{'='*60}")
 
 
 if __name__ == "__main__":
-    logger.info("Script started")
     process_input_files()
-    logger.info("Script finished")
