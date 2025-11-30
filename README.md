@@ -93,12 +93,14 @@ Comprehension: 92.3%
 Unique Unknown Words: 23
 
 === Unknown Words (by frequency) ===
-道 (dào) : 15
-行者 (xíng zhě) : 8
-裏 (lǐ) : 6
-與 (yǔ) : 5
+道 (dào) : 15 - way, path, principle
+行者 (xíng zhě) : 8 - traveler, pilgrim
+裏 (lǐ) : 6 - inside, interior
+與 (yǔ) : 5 - and, with, to give
 ...
 ```
+
+**Note:** Word definitions are automatically fetched from the MDBG Chinese-English dictionary API for the top 10 most frequent unknown words only (configurable via `MAX_DEFINITION_LOOKUPS` constant). If a definition cannot be found or the API is unavailable, only the word and pinyin will be displayed. Each API lookup has a 2-second timeout.
 
 ## Algorithm Details
 

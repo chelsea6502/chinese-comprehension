@@ -17,6 +17,7 @@ MAX_WORD_LENGTH = 4
 DEFAULT_KNOWN_WORDS_PATH = "known.txt"
 UNKNOWN_WORDS_PATH = "unknown.txt"
 MAX_UNKNOWN_WORDS_DISPLAY = 50
+MAX_DEFINITION_LOOKUPS = 10  # Only fetch definitions for top N words to avoid delays
 
 # Comprehensive punctuation set
 PUNCTUATION_CHARS = set(
@@ -31,6 +32,11 @@ DPState = namedtuple('DPState', ['score', 'segmentation', 'unknown_start'])
 def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> str:
     """Check comprehension of Chinese text from clipboard against known words."""
     try:
+        # Initialize CC-CEDICT parser for definitions
+        # Note: cedict-utils doesn't include dictionary data by default
+        # We'll use a simpler approach with a dictionary API or skip definitions
+        cedict = None
+        
         # Load known words (no character expansion)
         with open(known_words_path, encoding="utf8") as f:
             base_words = set(f.read().split())
@@ -177,9 +183,38 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
             lines.append("\n=== Unknown Words (by frequency) ===")
             display_count = min(len(unknown_words), MAX_UNKNOWN_WORDS_DISPLAY)
             
-            for word, count in unknown_words[:display_count]:
+            for idx, (word, count) in enumerate(unknown_words[:display_count]):
                 word_pinyin = ' '.join(p[0] for p in pinyin(word, style=Style.TONE))
-                lines.append(f"{word} ({word_pinyin}) : {count}")
+                
+                # Only look up definitions for top N words to avoid delays
+                definition = ""
+                if idx < MAX_DEFINITION_LOOKUPS:
+                    try:
+                        import urllib.request
+                        import urllib.parse
+                        import re
+                        
+                        # Use MDBG's simple API
+                        encoded_word = urllib.parse.quote(word)
+                        url = f"https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=1&wdqb={encoded_word}"
+                        
+                        # Simple scraping approach - look for English definition
+                        with urllib.request.urlopen(url, timeout=2) as response:
+                            html = response.read().decode('utf-8')
+                            # Look for definition pattern in HTML
+                            if '<div class="defs">' in html:
+                                start = html.find('<div class="defs">') + len('<div class="defs">')
+                                end = html.find('</div>', start)
+                                if end > start:
+                                    def_text = html[start:end].strip()
+                                    # Clean HTML tags
+                                    def_text = re.sub('<[^<]+?>', '', def_text)
+                                    if def_text and len(def_text) < 100:
+                                        definition = f" - {def_text[:80]}"
+                    except Exception:
+                        pass  # If API fails, just skip definition
+                
+                lines.append(f"{word} ({word_pinyin}) : {count}{definition}")
             
             if len(unknown_words) > display_count:
                 lines.append(f"... and {len(unknown_words) - display_count} more")
