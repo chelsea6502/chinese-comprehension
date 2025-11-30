@@ -22,12 +22,9 @@ CEDICT_PATH = "cedict_1_0_ts_utf-8_mdbg.txt"  # Path to CC-CEDICT dictionary fil
 
 # Comprehensive punctuation set
 PUNCTUATION_CHARS = set(
-    ',.:()!@[]+/\\！?？｡。＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～'
+    '✓\",.:()!@[]+/\\！?？｡。＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～'
     '｟｠｢｣､、〃《》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟〰〾〿–—''‛""„‟…‧﹏.?;﹔|.-·-*─\'\'\"\""'
 )
-
-# Characters to exclude from known words (special symbols that shouldn't be counted)
-EXCLUDED_CHARS = {'✓', '"', '"'}
 
 # Named tuple for DP state
 DPState = namedtuple('DPState', ['score', 'segmentation', 'unknown_start'])
@@ -90,8 +87,6 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
         # Load known words (no character expansion)
         with open(known_words_path, encoding="utf8") as f:
             base_words = set(f.read().split())
-        # Filter out excluded characters
-        base_words = {word for word in base_words if word not in EXCLUDED_CHARS}
         known_words = base_words.copy()
         
         # Load unknown words to exclude from known word counting
