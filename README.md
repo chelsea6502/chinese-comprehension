@@ -36,8 +36,6 @@ pip install -r requirements.txt
 python3 script.py
 ```
 
-Models (pkuseg + spaCy zh_core_web_sm) download automatically on first run.
-
 ## Usage
 
 ### Docker
@@ -101,15 +99,6 @@ Unique Unknown Words: 23
 與 (yǔ) : 5 - and, with, to give
 ...
 ```
-
-## Technical Details
-
-**Segmentation Strategy:**
-1. Match against all `.txt` files in `known/` directory (dynamic programming)
-2. Match against all `.txt` files in `unknown/` directory
-3. Fallback to pkuseg for remaining text
-
-**Proper Noun Detection:** spaCy NER excludes PERSON, GPE, ORG, FAC, LOC entities from calculations.
 
 ## License
 
