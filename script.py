@@ -6,6 +6,11 @@ Uses dynamic programming for optimal word segmentation.
 """
 
 import jieba
+import logging
+
+# Suppress jieba's logging output
+jieba.setLogLevel(logging.ERROR)
+
 import pyperclip
 import unicodedata
 from collections import Counter, namedtuple
