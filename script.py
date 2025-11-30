@@ -7,11 +7,10 @@ Uses dynamic programming for optimal word segmentation.
 
 import jieba
 import pyperclip
-import re
 import unicodedata
 from collections import Counter, namedtuple
 from pypinyin import pinyin, Style
-from typing import List, Tuple, Set
+from typing import List, Set
 
 # Constants
 MAX_WORD_LENGTH = 4
@@ -27,44 +26,30 @@ PUNCTUATION_CHARS = set(
 # Named tuple for DP state
 DPState = namedtuple('DPState', ['score', 'segmentation', 'unknown_start'])
 
-def load_word_list_from_file(filepath: str) -> Set[str]:
-    """Load word list from file and expand with individual characters."""
-    with open(filepath, encoding="utf8") as f:
-        words = set(f.read().split())
-    result = words.copy()
-    for word in words:
-        result.update(word)
-    return result
 
-
-def text_clean_up(text: str) -> str:
-    """Remove whitespace and diacritics from text."""
+def process_text(text: str, known_words: Set[str]) -> List[str]:
+    """Clean, tokenize using DP, and filter text in one pass."""
+    # Clean up: remove whitespace and diacritics
     normalized = unicodedata.normalize("NFKD", "".join(text.split()))
-    return "".join(c for c in normalized if unicodedata.category(c) != "Mn")
-
-
-# ============================================================================
-# COMPREHENSION CHECKER FUNCTIONS
-# ============================================================================
-
-def dp_tokenize(text: str, known_words: Set[str]) -> List[str]:
-    """Tokenize text using DP to maximize known word coverage."""
-    if not text:
+    cleaned = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
+    
+    if not cleaned:
         return []
     
-    n = len(text)
+    # DP tokenization to maximize known word coverage
+    n = len(cleaned)
     dp: List[DPState] = [DPState(0, [], -1)] + [DPState(float('-inf'), [], -1)] * n
     
     for i in range(1, n + 1):
         for j in range(max(0, i - MAX_WORD_LENGTH), i):
-            word = text[j:i]
+            word = cleaned[j:i]
             
             if word in known_words:
                 prev = dp[j]
                 new_seg = prev.segmentation.copy()
                 
                 if prev.unknown_start != -1:
-                    new_seg.extend([(w, False) for w in jieba.cut(text[prev.unknown_start:j])])
+                    new_seg.extend([(w, False) for w in jieba.cut(cleaned[prev.unknown_start:j])])
                 
                 new_seg.append((word, True))
                 new_score = prev.score + len(word)
@@ -82,41 +67,38 @@ def dp_tokenize(text: str, known_words: Set[str]) -> List[str]:
     result = final.segmentation.copy()
     
     if final.unknown_start != -1:
-        result.extend([(w, False) for w in jieba.cut(text[final.unknown_start:n])])
+        result.extend([(w, False) for w in jieba.cut(cleaned[final.unknown_start:n])])
     
-    return [word for word, _ in result]
+    # Filter and return only valid Chinese words
+    def is_valid(word: str) -> bool:
+        return (
+            word.strip()
+            and not word.isdigit()
+            and not all(c in PUNCTUATION_CHARS for c in word)
+            and not any(c.isascii() and (c.isalpha() or c.isdigit()) for c in word)
+        )
+    
+    return [word for word, _ in result if is_valid(word)]
 
 
-def filter_content(words: List[str]) -> List[str]:
-    """Filter out punctuation, numbers, whitespace, and English content."""
-    return [
-        word for word in words
-        if word.strip() and not word.isdigit()
-        and not all(c in PUNCTUATION_CHARS for c in word)
-        and not any(c.isascii() and (c.isalpha() or c.isdigit()) for c in word)
-    ]
-
-
-def calculate_comprehension_stats(filtered_content: List[str], known_words: Set[str]
-                                 ) -> Tuple[int, int, int, List[Tuple[str, int]]]:
-    """Calculate comprehension statistics and return unknown words by frequency."""
-    word_counts = Counter(filtered_content)
+def format_comprehension_report(words: List[str], known_words: Set[str]) -> str:
+    """Calculate comprehension statistics and format the report."""
+    if not words:
+        return "Error: No Chinese text found in clipboard after filtering"
+    
+    # Calculate stats
+    word_counts = Counter(words)
     is_known = lambda w: w in known_words or all(c in known_words for c in w)
     
+    total_words = len(words)
+    unique_words = len(word_counts)
     known_count = sum(count for word, count in word_counts.items() if is_known(word))
     unknown_words = sorted(
         [(w, c) for w, c in word_counts.items() if not is_known(w)],
         key=lambda x: x[1], reverse=True
     )
-    return len(filtered_content), len(word_counts), known_count, unknown_words
-
-
-def format_results(total_words: int, unique_words: int, known_count: int,
-                   unknown_words: List[Tuple[str, int]]) -> str:
-    """Format comprehension results with unknown words list."""
-    if not total_words:
-        return "Error: No Chinese text found in clipboard after filtering"
     
+    # Format output
     lines = [
         f"\nWord Count: {total_words}",
         f"Total Unique Words: {unique_words}",
@@ -129,7 +111,7 @@ def format_results(total_words: int, unique_words: int, known_count: int,
         display_count = min(len(unknown_words), MAX_UNKNOWN_WORDS_DISPLAY)
         
         for word, count in unknown_words[:display_count]:
-            word_pinyin = ' '.join(''.join(p) for p in pinyin(word, style=Style.TONE))
+            word_pinyin = ' '.join(p[0] for p in pinyin(word, style=Style.TONE))
             lines.append(f"{word} ({word_pinyin}) : {count}")
         
         if len(unknown_words) > display_count:
@@ -141,14 +123,19 @@ def format_results(total_words: int, unique_words: int, known_count: int,
 def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> str:
     """Check comprehension of Chinese text from clipboard against known words."""
     try:
-        known_words = load_word_list_from_file(known_words_path)
+        # Load known words and expand with individual characters
+        with open(known_words_path, encoding="utf8") as f:
+            words = set(f.read().split())
+        known_words = words.copy()
+        for word in words:
+            known_words.update(word)
+        
         text = pyperclip.paste()
         if not text:
             raise ValueError("Clipboard is empty")
         
-        filtered = filter_content(dp_tokenize(text_clean_up(text), known_words))
-        stats = calculate_comprehension_stats(filtered, known_words)
-        return format_results(*stats)
+        words = process_text(text, known_words)
+        return format_comprehension_report(words, known_words)
         
     except FileNotFoundError:
         return f"Error: Known words file not found at '{known_words_path}'"
