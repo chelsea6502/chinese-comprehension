@@ -26,7 +26,7 @@ mkdir -p input known unknown
 
 # Check if we need to build (first run or --build flag)
 if [ "$1" == "--build" ] || [ "$1" == "-b" ]; then
-    $COMPOSE_CMD build --quiet
+    $COMPOSE_CMD build
 elif ! docker images | grep -q "chinese-checker"; then
     $COMPOSE_CMD build --quiet
 fi
