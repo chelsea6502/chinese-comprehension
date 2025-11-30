@@ -5,6 +5,7 @@ Analyze Chinese text from your clipboard to gauge comprehension based on your kn
 ## Features
 - Analyzes Chinese text directly from clipboard
 - **Uses pkuseg (Peking University) for superior word segmentation (96.88% F1 accuracy)**
+- **Automatic proper noun detection using spaCy NER** - excludes names and places for accurate comprehension
 - Uses dynamic programming for optimal word segmentation
 - Calculates comprehension percentage based on known words
 - Lists unknown words with pinyin and frequency
@@ -16,6 +17,7 @@ Analyze Chinese text from your clipboard to gauge comprehension based on your kn
 ## Requirements
 * Python 3.9 or above
 * [spacy-pkuseg](https://github.com/explosion/spacy-pkuseg) - Peking University's Chinese segmentation (96.88% F1 on MSRA)
+* [spaCy](https://spacy.io/) - Industrial-strength NLP for proper noun detection
 * pyperclip - Clipboard access
 * pypinyin - Pinyin conversion
 
@@ -35,7 +37,11 @@ cd chinese-comprehension
 pip install -r requirements.txt
 ```
 
-**Note:** On first run, pkuseg will automatically download the 'mixed' model. This is a one-time download.
+**Note:**
+- On first run, the script will automatically download required models:
+  - pkuseg 'mixed' model (~20MB) for word segmentation
+  - spaCy Chinese model zh_core_web_sm (~50MB) for proper noun detection
+- Both are one-time downloads that happen automatically when needed
 
 ## Usage
 
@@ -46,7 +52,7 @@ pip install -r requirements.txt
 python script.py
 ```
 
-**First Run:** The script will download pkuseg's 'mixed' model automatically. Subsequent runs will be faster.
+**First Run:** The script will automatically download required models (pkuseg and spaCy) on first use. This may take a few minutes but only happens once.
 
 ### Known Words File
 By default, the script looks for `known.txt` in the same directory. To use a different file, modify the `DEFAULT_KNOWN_WORDS_PATH` constant in the script.
@@ -74,6 +80,14 @@ Format (one word per line, comments with # are optional):
 
 **Note:** If a word appears in both `known.txt` and `unknown.txt`, it will be treated as known (explicit entries in `known.txt` take priority).
 
+### Proper Noun Exclusion
+The script automatically detects and excludes proper nouns (人名 person names, 地名 place names, 机构名 organizations) from comprehension calculations using spaCy's Named Entity Recognition. This provides more accurate comprehension measurements by focusing on vocabulary rather than memorized names.
+
+**Why exclude proper nouns?**
+- Recognizing "李明" (a person's name) doesn't mean you know the characters 李 or 明 in other contexts
+- Place names like "北京" are often memorized without understanding the component characters
+- Focusing on common vocabulary gives a truer picture of reading ability
+
 ## Example Output
 
 ```
@@ -91,6 +105,13 @@ Unique Unknown Words: 23
 ```
 
 ## Technical Details
+
+### Proper Noun Detection
+Uses **spaCy's zh_core_web_sm model** for Named Entity Recognition:
+- Detects PERSON (人名), GPE (地名), ORG (机构), FAC (设施), LOC (位置)
+- Trained on OntoNotes 5.0 Chinese corpus
+- Excludes detected proper nouns from comprehension calculations by default
+- Provides more accurate vocabulary assessment
 
 ### Word Segmentation
 This tool uses **pkuseg** from Peking University, which provides:

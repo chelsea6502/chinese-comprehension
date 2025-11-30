@@ -6,6 +6,7 @@ Uses dynamic programming for optimal word segmentation.
 """
 
 import spacy_pkuseg as pkuseg
+import spacy
 import pyperclip
 import unicodedata
 from collections import Counter, namedtuple
@@ -37,6 +38,9 @@ CEDICT_PATH = "cedict_1_0_ts_utf-8_mdbg.txt"  # Path to CC-CEDICT dictionary fil
 # Uses pre-trained models optimized for web/news/mixed domains
 pkuseg_segmenter = None
 
+# Initialize spaCy NER model (only once for efficiency)
+spacy_nlp = None
+
 def get_pkuseg_segmenter():
     """Lazy load pkuseg segmenter to avoid slow startup"""
     global pkuseg_segmenter
@@ -47,6 +51,28 @@ def get_pkuseg_segmenter():
         pkuseg_segmenter = pkuseg.pkuseg(model_name='mixed')
         logger.info("pkuseg initialized")
     return pkuseg_segmenter
+
+def get_spacy_nlp():
+    """Lazy load spaCy NER model to avoid slow startup"""
+    global spacy_nlp
+    if spacy_nlp is None:
+        try:
+            logger.info("Loading spaCy Chinese model for NER...")
+            spacy_nlp = spacy.load("zh_core_web_sm")
+            logger.info("spaCy NER initialized")
+        except OSError:
+            logger.warning("spaCy Chinese model not found. Downloading zh_core_web_sm (~50MB)...")
+            logger.info("This is a one-time download and may take a few minutes...")
+            try:
+                import subprocess
+                subprocess.check_call([sys.executable, "-m", "spacy", "download", "zh_core_web_sm"])
+                logger.info("Download complete. Loading model...")
+                spacy_nlp = spacy.load("zh_core_web_sm")
+                logger.info("spaCy NER initialized")
+            except Exception as e:
+                logger.error(f"Failed to download spaCy model: {e}")
+                raise RuntimeError(f"Could not download spaCy Chinese model: {e}")
+    return spacy_nlp
 
 # Comprehensive punctuation set
 PUNCTUATION_CHARS = set(
@@ -109,7 +135,9 @@ def load_cedict(path: str) -> Dict[str, str]:
 
 
 def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> str:
-    """Check comprehension of Chinese text from clipboard against known words."""
+    """Check comprehension of Chinese text from clipboard against known words.
+    Automatically excludes proper nouns (names, places) for accurate comprehension measurement.
+    """
     logger.info("Starting analysis...")
     
     try:
@@ -221,6 +249,20 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
         if final.unknown_start != -1:
             result.extend([(w, False) for w in segment_unknown(cleaned[final.unknown_start:n])])
         
+        # Detect proper nouns using spaCy NER
+        proper_nouns = set()
+        try:
+            nlp = get_spacy_nlp()
+            # Process the cleaned text for NER
+            doc = nlp(cleaned)
+            # Extract proper nouns (PERSON, GPE=location, ORG, FAC=facility, LOC)
+            for ent in doc.ents:
+                if ent.label_ in ['PERSON', 'GPE', 'ORG', 'FAC', 'LOC']:
+                    proper_nouns.add(ent.text)
+            logger.info(f"Detected {len(proper_nouns)} proper nouns to exclude")
+        except Exception as e:
+            logger.warning(f"NER detection failed: {e}. Continuing without proper noun exclusion.")
+        
         # Filter to valid Chinese words only
         def is_valid(word: str) -> bool:
             return (
@@ -228,6 +270,7 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
                 and not word.isdigit()
                 and not all(c in PUNCTUATION_CHARS for c in word)
                 and not any(c.isascii() and (c.isalpha() or c.isdigit()) for c in word)
+                and word not in proper_nouns  # Exclude detected proper nouns
             )
         
         words = [word for word, _ in result if is_valid(word)]
