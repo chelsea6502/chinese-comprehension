@@ -49,3 +49,11 @@ Thumbs.db
 # Documentation
 README.md
 example.txt
+
+# Data directories (mounted as volumes in docker-compose)
+input/
+known/
+unknown/
+output.txt
+books/
+data/

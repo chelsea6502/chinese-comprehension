@@ -19,20 +19,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Download spaCy Chinese model
 RUN python -m spacy download zh_core_web_sm
 
-# Copy application files
-COPY script.py .
-COPY definitions.txt .
-
-# Create necessary directories
+# Create necessary directories (volumes will mount here)
 RUN mkdir -p input known unknown
 
-# Copy directory contents - use .dockerignore to handle missing dirs
-# These will only copy if directories exist and contain files
-COPY --chown=root:root . /tmp/build/
-RUN if [ -d /tmp/build/input ]; then cp -r /tmp/build/input/* input/ 2>/dev/null || true; fi && \
-    if [ -d /tmp/build/known ]; then cp -r /tmp/build/known/* known/ 2>/dev/null || true; fi && \
-    if [ -d /tmp/build/unknown ]; then cp -r /tmp/build/unknown/* unknown/ 2>/dev/null || true; fi && \
-    rm -rf /tmp/build
+# Copy application files (only what's needed to run)
+COPY script.py .
+COPY definitions.txt .
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

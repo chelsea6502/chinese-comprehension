@@ -37,10 +37,22 @@ if [ -z "$(ls -A input/*.txt 2>/dev/null)" ]; then
     echo "   Please add Chinese text files to analyze"
 fi
 
-# Build and run with docker-compose
-echo ""
-echo "🔨 Building Docker image..."
-$COMPOSE_CMD build
+# Check if we need to build (first run or --build flag)
+if [ "$1" == "--build" ] || [ "$1" == "-b" ]; then
+    echo ""
+    echo "🔨 Building Docker image..."
+    $COMPOSE_CMD build
+    BUILD_DONE=true
+elif ! docker images | grep -q "chinese-checker"; then
+    echo ""
+    echo "🔨 Building Docker image (first run)..."
+    $COMPOSE_CMD build
+    BUILD_DONE=true
+else
+    echo ""
+    echo "⚡ Using cached Docker image (use --build to rebuild)"
+    BUILD_DONE=false
+fi
 
 echo ""
 echo "🚀 Running Chinese Checker..."
@@ -49,4 +61,10 @@ echo ""
 $COMPOSE_CMD up
 
 echo ""
-echo "✅ Done!"
+if [ "$BUILD_DONE" = true ]; then
+    echo "✅ Done! Next runs will be faster (no rebuild needed)"
+else
+    echo "✅ Done!"
+fi
+echo ""
+echo "💡 Tip: Only rebuild with './run.sh --build' when requirements.txt changes"
