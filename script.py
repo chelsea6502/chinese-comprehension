@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 
 # Constants
 MAX_WORD_LENGTH = 4
-DEFAULT_KNOWN_WORDS_PATH = "known.txt"
-UNKNOWN_WORDS_PATH = "unknown.txt"
+KNOWN_WORDS_DIR = "known"
+UNKNOWN_WORDS_DIR = "unknown"
 MAX_UNKNOWN_WORDS_DISPLAY = 20
 CEDICT_PATH = "definitions.txt"  # Path to CC-CEDICT dictionary file
 
@@ -134,7 +134,7 @@ def load_cedict(path: str) -> Dict[str, str]:
     return cedict
 
 
-def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> str:
+def comprehension_checker(known_words_dir: str = KNOWN_WORDS_DIR) -> str:
     """Check comprehension of Chinese text from clipboard against known words.
     Automatically excludes proper nouns (names, places) for accurate comprehension measurement.
     """
@@ -144,26 +144,38 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
         # Load CC-CEDICT dictionary for instant offline lookups
         cedict = load_cedict(CEDICT_PATH)
         
-        # Load known words (no character expansion)
-        with open(known_words_path, encoding="utf8") as f:
-            base_words = set(f.read().split())
-        known_words = base_words.copy()
-        logger.info(f"Loaded {len(base_words)} known words")
+        # Load known words from all .txt files in known directory
+        base_words = set()
+        if os.path.exists(known_words_dir) and os.path.isdir(known_words_dir):
+            txt_files = [f for f in os.listdir(known_words_dir) if f.endswith('.txt')]
+            for txt_file in txt_files:
+                file_path = os.path.join(known_words_dir, txt_file)
+                logger.info(f"Loading known words from {txt_file}")
+                with open(file_path, encoding="utf8") as f:
+                    base_words.update(f.read().split())
+        else:
+            raise FileNotFoundError(f"Known words directory not found: '{known_words_dir}'")
         
-        # Load unknown words to exclude from known word counting
+        known_words = base_words.copy()
+        logger.info(f"Loaded {len(base_words)} known words from {len(txt_files)} file(s)")
+        
+        # Load unknown words from all .txt files in unknown directory
         unknown_words_list = set()
-        try:
-            with open(UNKNOWN_WORDS_PATH, encoding="utf8") as f:
-                for line in f:
-                    # Skip comments and empty lines
-                    line = line.strip()
-                    if line and not line.startswith('#'):
-                        # Extract word (before any tab or comment)
-                        word = line.split('\t')[0].split('#')[0].strip()
-                        if word:
-                            unknown_words_list.add(word)
-        except FileNotFoundError:
-            pass
+        if os.path.exists(UNKNOWN_WORDS_DIR) and os.path.isdir(UNKNOWN_WORDS_DIR):
+            txt_files = [f for f in os.listdir(UNKNOWN_WORDS_DIR) if f.endswith('.txt')]
+            for txt_file in txt_files:
+                file_path = os.path.join(UNKNOWN_WORDS_DIR, txt_file)
+                logger.info(f"Loading unknown words from {txt_file}")
+                with open(file_path, encoding="utf8") as f:
+                    for line in f:
+                        # Skip comments and empty lines
+                        line = line.strip()
+                        if line and not line.startswith('#'):
+                            # Extract word (before any tab or comment)
+                            word = line.split('\t')[0].split('#')[0].strip()
+                            if word:
+                                unknown_words_list.add(word)
+            logger.info(f"Loaded {len(unknown_words_list)} unknown words from {len(txt_files)} file(s)")
         
         text = pyperclip.paste()
         if not text:
@@ -349,8 +361,8 @@ def comprehension_checker(known_words_path: str = DEFAULT_KNOWN_WORDS_PATH) -> s
         
         return '\n'.join(lines)
         
-    except FileNotFoundError:
-        return f"Error: Known words file not found at '{known_words_path}'"
+    except FileNotFoundError as e:
+        return f"Error: {str(e)}"
     except ValueError as e:
         return f"Error: {str(e)}"
     except Exception as e:

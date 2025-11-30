@@ -12,3 +12,7 @@ env/
 /data/*.txt
 output.txt
 mega_book.py
+
+# User's personal word lists
+known/*.txt
+unknown/*.txt

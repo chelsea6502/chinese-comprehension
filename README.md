@@ -11,7 +11,7 @@ This project is based on [Destaq/chinese-comprehension](https://github.com/Desta
 - pkuseg word segmentation (~97% accuracy)
 - Automatic proper noun detection (excludes names/places)
 - Unknown words listed with pinyin, frequency, and definitions
-- Optional `unknown.txt` to exclude compound words
+- Organize known/unknown words across multiple `.txt` files
 
 ## Requirements
 Python 3.9+ and dependencies in `requirements.txt` (pkuseg, spaCy, pyperclip, pypinyin)
@@ -31,25 +31,33 @@ Models (pkuseg + spaCy zh_core_web_sm) download automatically on first run.
 1. Copy Chinese text to clipboard
 2. Run: `python script.py`
 
-### Known Words File
-Create `known.txt` with one word per line:
+### Known Words Directory
+Create `.txt` files in the `known/` directory with one word per line. You can organize words across multiple files:
+
+**known/hsk1.txt:**
 ```
 是
 你好
 再见
+```
+
+**known/hsk2.txt:**
+```
 有
 五
 ```
 
-### Unknown Words File (Optional)
-List compound words that shouldn't count as known even if individual characters are known:
+### Unknown Words Directory (Optional)
+Create `.txt` files in the `unknown/` directory to list compound words that shouldn't count as known even if individual characters are known:
+
+**unknown/compounds.txt:**
 ```
 好吃	# hǎo chī
 道理	# dào lǐ
 行者	# xíng zhě
 ```
 
-Entries in `known.txt` take priority over `unknown.txt`.
+Entries in `known/` files take priority over `unknown/` files.
 
 ## Example Output
 
@@ -70,8 +78,8 @@ Unique Unknown Words: 23
 ## Technical Details
 
 **Segmentation Strategy:**
-1. Match against `known.txt` (dynamic programming)
-2. Match against `unknown.txt`
+1. Match against all `.txt` files in `known/` directory (dynamic programming)
+2. Match against all `.txt` files in `unknown/` directory
 3. Fallback to pkuseg for remaining text
 
 **Proper Noun Detection:** spaCy NER excludes PERSON, GPE, ORG, FAC, LOC entities from calculations.
