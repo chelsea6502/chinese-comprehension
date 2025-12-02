@@ -30,6 +30,7 @@ mega_book.py
 !unknown/HSKBand4.txt
 !unknown/HSKBand5.txt
 !unknown/HSKBand6.txt
+!unknown/HSKBand7-9.txt
 # Ignore other txt files
 known/*.txt
 unknown/*.txt
