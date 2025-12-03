@@ -325,22 +325,6 @@ def main():
             else:
                 st.session_state.selected_wordlists.discard(filename)
         
-        st.divider()
-        
-        # Info section
-        st.markdown("### ℹ️ About")
-        st.markdown("""
-        This tool analyzes Chinese text to calculate your comprehension percentage based on known words.
-        
-        **Features:**
-        - 📊 Comprehension analysis
-        - 🔤 Pinyin for unknown words
-        - 📖 Dictionary definitions
-        - 🎯 Proper noun detection
-        """)
-        
-        st.markdown("---")
-        st.markdown("Built with ❤️ using [Streamlit](https://streamlit.io)")
     
     # Main content area
     st.markdown("### 📝 Paste Chinese Text to Analyze")
