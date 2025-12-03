@@ -73,6 +73,9 @@ def get_spacy_nlp():
 PUNCTUATION_CHARS = set(
     '✓\",.:()!@[]+/\\！?？｡。＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～'
     '｟｠｢｣､、〃《》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟〰〾〿–—''‛""„‟…‧﹏.?;﹔|.-·-*─\'\'\"\""'
+    '★☆○●◎◇◆□■△▲▽▼※→←↑↓⇒⇐⇑⇓∴∵∈∋⊆⊇⊂⊃∪∩∧∨¬∀∃'  # Symbols
+    '=≠≈≡≤≥<>±×÷∞∫∑∏√∂∇'  # Math symbols
+    '""''‹›«»‚„'  # Additional quotation marks
 )
 
 # Named tuple for DP state
@@ -269,13 +272,26 @@ def comprehension_checker(text: str, known_words_dir: str = KNOWN_WORDS_DIR) -> 
         
         # Filter to valid Chinese words only
         def is_valid(word: str) -> bool:
-            return (
-                word.strip()
-                and not word.isdigit()
-                and not all(c in PUNCTUATION_CHARS for c in word)
-                and not any(c.isascii() and (c.isalpha() or c.isdigit()) for c in word)
-                and word not in proper_nouns  # Exclude detected proper nouns
-            )
+            if not word.strip() or word in proper_nouns:
+                return False
+            
+            # Check if word contains at least one valid CJK character
+            # CJK Unified Ideographs: U+4E00 to U+9FFF (most common Chinese characters)
+            # CJK Extension A: U+3400 to U+4DBF
+            # CJK Extension B-F: U+20000 to U+2EBEF
+            has_chinese = any('\u4e00' <= c <= '\u9fff' or
+                            '\u3400' <= c <= '\u4dbf' or
+                            '\U00020000' <= c <= '\U0002ebef'
+                            for c in word)
+            
+            if not has_chinese:
+                return False
+            
+            # Reject if word is purely digits or contains ASCII letters/digits
+            if word.isdigit() or any(c.isascii() and (c.isalpha() or c.isdigit()) for c in word):
+                return False
+            
+            return True
         
         words = [word for word, _ in result if is_valid(word)]
         
