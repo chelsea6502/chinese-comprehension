@@ -390,7 +390,9 @@ def main():
             analyze_button = st.button("🔍 Analyze Text", type="primary", use_container_width=True)
         with col2:
             if st.button("🗑️ Clear", use_container_width=True):
-                st.session_state.text_input = ''
+                # Clear by deleting the key and rerunning
+                if 'text_input' in st.session_state:
+                    del st.session_state.text_input
                 st.rerun()
         
         # Auto-analyze when dropdown changes or button clicked
