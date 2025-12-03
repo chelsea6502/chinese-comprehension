@@ -285,15 +285,32 @@ def main():
     # Get all word lists from both directories (needed for analysis)
     known_files = get_available_wordlists(KNOWN_WORDS_DIR)
     unknown_files = get_available_wordlists(UNKNOWN_WORDS_DIR)
-    all_files = []
     
-    # Combine and deduplicate, preserving order
+    # Define HSK order
+    hsk_order = ['HSK1.txt', 'HSK2.txt', 'HSK3.txt', 'HSK4.txt', 'HSK5.txt', 'HSK6.txt',
+                 'HSKBand1.txt', 'HSKBand2.txt', 'HSKBand3.txt', 'HSKBand4.txt',
+                 'HSKBand5.txt', 'HSKBand6.txt', 'HSKBand7-9.txt']
+    
+    all_files = []
+    custom_files = []
+    
+    # Add HSK files in order from both directories
+    for hsk_file in hsk_order:
+        if hsk_file in known_files:
+            all_files.append((hsk_file, KNOWN_WORDS_DIR))
+        elif hsk_file in unknown_files:
+            all_files.append((hsk_file, UNKNOWN_WORDS_DIR))
+    
+    # Collect custom files (non-HSK files)
     for f in known_files:
-        if f not in all_files:
-            all_files.append((f, KNOWN_WORDS_DIR))
+        if f not in hsk_order:
+            custom_files.append((f, KNOWN_WORDS_DIR))
     for f in unknown_files:
-        if f not in all_files:
-            all_files.append((f, UNKNOWN_WORDS_DIR))
+        if f not in hsk_order:
+            custom_files.append((f, UNKNOWN_WORDS_DIR))
+    
+    # Add custom files at the end
+    all_files.extend(custom_files)
     
     # Sidebar for word list selection
     with st.sidebar:
