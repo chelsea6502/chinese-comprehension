@@ -317,29 +317,55 @@ def main():
         if 'selected_wordlists' not in st.session_state:
             st.session_state.selected_wordlists = set(known_files)
         
-        # Display checkboxes for all word lists
+        # Separate HSK 2.0 and HSK 3.0 files
+        hsk_2_files = []
+        hsk_3_files = []
+        
         for filename, directory in all_files:
-            filepath = os.path.join(directory, filename)
-            word_count = len(load_word_list_from_file(filepath))
-            
-            # Create checkbox with word count
-            # Format label: "HSKBand" files are "HSK 3.0", others are regular HSK
-            display_name = filename.replace('.txt', '')
-            if 'HSKBand' in display_name:
-                display_name = display_name.replace('HSKBand', 'HSK 3.0 Band ')
-            
-            label = f"{display_name} ({word_count:,} words)"
-            checked = st.checkbox(
-                label,
-                value=filename in st.session_state.selected_wordlists,
-                key=f"wordlist_{filename}"
-            )
-            
-            # Update session state
-            if checked:
-                st.session_state.selected_wordlists.add(filename)
+            if 'HSKBand' in filename:
+                hsk_3_files.append((filename, directory))
             else:
-                st.session_state.selected_wordlists.discard(filename)
+                hsk_2_files.append((filename, directory))
+        
+        # Display HSK 2.0 section
+        if hsk_2_files:
+            st.markdown("### HSK 2.0")
+            for filename, directory in hsk_2_files:
+                filepath = os.path.join(directory, filename)
+                word_count = len(load_word_list_from_file(filepath))
+                
+                display_name = filename.replace('.txt', '')
+                label = f"{display_name} ({word_count:,} words)"
+                checked = st.checkbox(
+                    label,
+                    value=filename in st.session_state.selected_wordlists,
+                    key=f"wordlist_{filename}"
+                )
+                
+                if checked:
+                    st.session_state.selected_wordlists.add(filename)
+                else:
+                    st.session_state.selected_wordlists.discard(filename)
+        
+        # Display HSK 3.0 section
+        if hsk_3_files:
+            st.markdown("### HSK 3.0")
+            for filename, directory in hsk_3_files:
+                filepath = os.path.join(directory, filename)
+                word_count = len(load_word_list_from_file(filepath))
+                
+                display_name = filename.replace('.txt', '').replace('HSKBand', 'Band ')
+                label = f"{display_name} ({word_count:,} words)"
+                checked = st.checkbox(
+                    label,
+                    value=filename in st.session_state.selected_wordlists,
+                    key=f"wordlist_{filename}"
+                )
+                
+                if checked:
+                    st.session_state.selected_wordlists.add(filename)
+                else:
+                    st.session_state.selected_wordlists.discard(filename)
         
     
     # Main content area with tabs
