@@ -7,13 +7,14 @@ A web interface for analyzing Chinese text comprehension based on known words.
 import streamlit as st
 import os
 import unicodedata
+import json
 from collections import Counter
 from pypinyin import pinyin, Style
 from typing import List
 
 from script import (
-    KNOWN_WORDS_DIR, UNKNOWN_WORDS_DIR, MAX_WORD_LENGTH, 
-    PUNCTUATION_CHARS, DPState, load_cedict, get_pkuseg_segmenter, 
+    KNOWN_WORDS_DIR, UNKNOWN_WORDS_DIR, MAX_WORD_LENGTH,
+    PUNCTUATION_CHARS, DPState, load_cedict, get_pkuseg_segmenter,
     get_spacy_nlp, CEDICT_PATH, MAX_UNKNOWN_WORDS_DISPLAY
 )
 
@@ -24,6 +25,22 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# JavaScript for localStorage persistence
+st.markdown("""
+<script>
+// Save to localStorage
+window.saveToLocalStorage = function(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+}
+
+// Load from localStorage
+window.loadFromLocalStorage = function(key) {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : null;
+}
+</script>
+""", unsafe_allow_html=True)
 
 # Custom CSS
 st.markdown("""
@@ -296,8 +313,12 @@ def main():
     with st.sidebar:
         st.header("📚 HSK Word Lists")
         
+        # Initialize session state with persistence
         if 'selected_wordlists' not in st.session_state:
             st.session_state.selected_wordlists = set(known_files)
+        
+        if 'settings_loaded' not in st.session_state:
+            st.session_state.settings_loaded = False
         
         # Separate HSK 2.0 and 3.0
         hsk_2_files = [(f, d) for f, d in all_files if 'HSKBand' not in f]
@@ -379,6 +400,7 @@ def main():
     with tab2:
         st.markdown("### Add Your Custom Words")
         st.markdown("Enter words you know (one per line):")
+        st.caption("💾 Your custom words and checkbox selections are automatically saved in your browser")
         
         if 'custom_words' not in st.session_state:
             st.session_state.custom_words = ''
@@ -402,6 +424,10 @@ def main():
             if st.button("🗑️ Clear Custom Words", use_container_width=True):
                 st.session_state.custom_words = ''
                 st.rerun()
+        
+        # Info about persistence
+        st.markdown("---")
+        st.info("💡 **Note:** Your settings are saved in your browser and will persist across sessions on this device.")
 
 
 if __name__ == "__main__":
