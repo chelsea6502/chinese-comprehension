@@ -1,7 +1,7 @@
 """
 Chinese Checker - Streamlit Web Application
 
-A web interface for analyzing Chinese text comprehension based on known words.
+A web interface for analyzing Mandarin text comprehension based on known words.
 """
 
 import streamlit as st
@@ -99,7 +99,7 @@ def get_available_wordlists(directory: str) -> List[str]:
 
 def analyze_text(text: str, selected_known: List[str], selected_unknown: List[str], 
                  all_files: List[tuple], custom_words: str = "") -> str:
-    """Analyze Chinese text comprehension with selected word lists and custom words."""
+    """Analyze Mandarin text comprehension with selected word lists and custom words."""
     try:
         cedict = load_cedict(CEDICT_PATH)
         
@@ -135,7 +135,7 @@ def analyze_text(text: str, selected_known: List[str], selected_unknown: List[st
         cleaned = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
         
         if not cleaned:
-            return "Error: No Chinese text found after filtering"
+            return "Error: No Mandarin text found after filtering"
         
         # DP tokenization
         n = len(cleaned)
@@ -226,7 +226,7 @@ def analyze_text(text: str, selected_known: List[str], selected_unknown: List[st
         words = [word for word, _ in result if is_valid(word)]
         
         if not words:
-            return "Error: No Chinese text found after filtering"
+            return "Error: No Mandarin text found after filtering"
         
         # Calculate statistics
         word_counts = Counter(words)
@@ -290,7 +290,7 @@ def analyze_text(text: str, selected_known: List[str], selected_unknown: List[st
 def main():
     # Header
     st.markdown('<div class="main-header">📚 Chinese Checker</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Analyze Chinese text comprehension based on your known words</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Analyze Mandarin text comprehension based on your known words</div>', unsafe_allow_html=True)
     
     # Get word lists
     known_files = get_available_wordlists(KNOWN_WORDS_DIR)
@@ -367,9 +367,9 @@ def main():
     tab1, tab2 = st.tabs(["📝 Analyze Text", "✏️ Custom Words"])
     
     with tab1:
-        st.markdown("### Paste Chinese Text to Analyze")
+        st.markdown("### Paste Mandarin Text to Analyze")
         text_input = st.text_area(
-            "Enter Chinese text to analyze:",
+            "Enter Mandarin text to analyze:",
             height=300,
             placeholder="粘贴中文文本在这里...",
             label_visibility="collapsed"
@@ -395,7 +395,7 @@ def main():
                 st.code(result, language=None)
                 st.markdown('</div>', unsafe_allow_html=True)
         elif analyze_button:
-            st.warning("⚠️ Please enter some Chinese text to analyze.")
+            st.warning("⚠️ Please enter some Mandarin text to analyze.")
     
     with tab2:
         st.markdown("### Add Your Custom Words")
