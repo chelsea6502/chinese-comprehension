@@ -381,7 +381,8 @@ def main():
             "Enter Mandarin text to analyze:",
             height=300,
             placeholder="粘贴中文文本在这里...",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="text_input"
         )
         
         col1, col2, col3 = st.columns([1, 1, 2])
@@ -389,9 +390,24 @@ def main():
             analyze_button = st.button("🔍 Analyze Text", type="primary", use_container_width=True)
         with col2:
             if st.button("🗑️ Clear", use_container_width=True):
+                st.session_state.text_input = ''
                 st.rerun()
         
-        if analyze_button and text_input.strip():
+        # Auto-analyze when dropdown changes or button clicked
+        should_analyze = False
+        if analyze_button:
+            should_analyze = True
+        elif text_input.strip():
+            # Check if dropdown selections changed
+            if 'prev_hsk_2' not in st.session_state:
+                st.session_state.prev_hsk_2 = hsk_2_selection
+                st.session_state.prev_hsk_3 = hsk_3_selection
+            elif st.session_state.prev_hsk_2 != hsk_2_selection or st.session_state.prev_hsk_3 != hsk_3_selection:
+                st.session_state.prev_hsk_2 = hsk_2_selection
+                st.session_state.prev_hsk_3 = hsk_3_selection
+                should_analyze = True
+        
+        if should_analyze and text_input.strip():
             with st.spinner("Analyzing text..."):
                 selected_known = [f for f, _ in all_files if f in st.session_state.selected_wordlists]
                 selected_unknown = [f for f, _ in all_files if f not in st.session_state.selected_wordlists]
