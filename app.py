@@ -314,19 +314,19 @@ def main():
         st.header("📚 HSK Level")
         
         # HSK 2.0 levels
-        hsk_2_levels = ['None', 'HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6']
+        hsk_2_levels = ['None', 'Level 1', 'Level 2', 'Level 3', 'Level 4', 'Level 5', 'Level 6']
         hsk_2_files_map = {
-            'HSK 1': ['HSK1.txt'],
-            'HSK 2': ['HSK1.txt', 'HSK2.txt'],
-            'HSK 3': ['HSK1.txt', 'HSK2.txt', 'HSK3.txt'],
-            'HSK 4': ['HSK1.txt', 'HSK2.txt', 'HSK3.txt', 'HSK4.txt'],
-            'HSK 5': ['HSK1.txt', 'HSK2.txt', 'HSK3.txt', 'HSK4.txt', 'HSK5.txt'],
-            'HSK 6': ['HSK1.txt', 'HSK2.txt', 'HSK3.txt', 'HSK4.txt', 'HSK5.txt', 'HSK6.txt'],
+            'Level 1': ['HSK1.txt'],
+            'Level 2': ['HSK1.txt', 'HSK2.txt'],
+            'Level 3': ['HSK1.txt', 'HSK2.txt', 'HSK3.txt'],
+            'Level 4': ['HSK1.txt', 'HSK2.txt', 'HSK3.txt', 'HSK4.txt'],
+            'Level 5': ['HSK1.txt', 'HSK2.txt', 'HSK3.txt', 'HSK4.txt', 'HSK5.txt'],
+            'Level 6': ['HSK1.txt', 'HSK2.txt', 'HSK3.txt', 'HSK4.txt', 'HSK5.txt', 'HSK6.txt'],
         }
         
         # Initialize session state
         if 'hsk_2_level' not in st.session_state:
-            st.session_state.hsk_2_level = 'HSK 4'
+            st.session_state.hsk_2_level = 'Level 4'
         if 'hsk_3_level' not in st.session_state:
             st.session_state.hsk_3_level = 'None'
         
@@ -341,20 +341,20 @@ def main():
         st.session_state.hsk_2_level = hsk_2_selection
         
         # HSK 3.0 levels (New HSK)
-        hsk_3_levels = ['None', 'Band 1', 'Band 2', 'Band 3', 'Band 4', 'Band 5', 'Band 6', 'Band 7-9']
+        hsk_3_levels = ['None', 'Level 1', 'Level 2', 'Level 3', 'Level 4', 'Level 5', 'Level 6', 'Level 7-9']
         hsk_3_files_map = {
-            'Band 1': ['HSKBand1.txt'],
-            'Band 2': ['HSKBand1.txt', 'HSKBand2.txt'],
-            'Band 3': ['HSKBand1.txt', 'HSKBand2.txt', 'HSKBand3.txt'],
-            'Band 4': ['HSKBand1.txt', 'HSKBand2.txt', 'HSKBand3.txt', 'HSKBand4.txt'],
-            'Band 5': ['HSKBand1.txt', 'HSKBand2.txt', 'HSKBand3.txt', 'HSKBand4.txt', 'HSKBand5.txt'],
-            'Band 6': ['HSKBand1.txt', 'HSKBand2.txt', 'HSKBand3.txt', 'HSKBand4.txt', 'HSKBand5.txt', 'HSKBand6.txt'],
-            'Band 7-9': ['HSKBand1.txt', 'HSKBand2.txt', 'HSKBand3.txt', 'HSKBand4.txt', 'HSKBand5.txt', 'HSKBand6.txt', 'HSKBand7-9.txt'],
+            'Level 1': ['HSKBand1.txt'],
+            'Level 2': ['HSKBand1.txt', 'HSKBand2.txt'],
+            'Level 3': ['HSKBand1.txt', 'HSKBand2.txt', 'HSKBand3.txt'],
+            'Level 4': ['HSKBand1.txt', 'HSKBand2.txt', 'HSKBand3.txt', 'HSKBand4.txt'],
+            'Level 5': ['HSKBand1.txt', 'HSKBand2.txt', 'HSKBand3.txt', 'HSKBand4.txt', 'HSKBand5.txt'],
+            'Level 6': ['HSKBand1.txt', 'HSKBand2.txt', 'HSKBand3.txt', 'HSKBand4.txt', 'HSKBand5.txt', 'HSKBand6.txt'],
+            'Level 7-9': ['HSKBand1.txt', 'HSKBand2.txt', 'HSKBand3.txt', 'HSKBand4.txt', 'HSKBand5.txt', 'HSKBand6.txt', 'HSKBand7-9.txt'],
         }
         
         st.markdown("### HSK 3.0 (New HSK)")
         hsk_3_selection = st.selectbox(
-            "Select your HSK 3.0 level (includes all previous bands):",
+            "Select your HSK 3.0 level (includes all previous levels):",
             hsk_3_levels,
             index=hsk_3_levels.index(st.session_state.hsk_3_level),
             key="hsk_3_select",
